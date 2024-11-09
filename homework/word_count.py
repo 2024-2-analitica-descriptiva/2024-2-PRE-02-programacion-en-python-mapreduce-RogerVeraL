@@ -25,18 +25,38 @@ from itertools import groupby
 #
 def load_input(input_directory):
     """Funcion load_input"""
+    files = glob.glob(f"{input_directory}/*")
+    sequence = []
 
+    with fileinput.input(files) as f:
+        for line in f:
+            sequence.append(
+                (fileinput.filename(), line)
+            )
 
+    return sequence
 #
 # Escriba la función line_preprocessing que recibe una lista de tuplas de la
 # función anterior y retorna una lista de tuplas (clave, valor). Esta función
 # realiza el preprocesamiento de las líneas de texto,
 #
 def line_preprocessing(sequence):
-    """Line Preprocessing"""
+    """Line Preprocessing"""    
+    import string
+    sequence = [
+        (key, value.translate(str.maketrans("", "", string.punctuation)).lower())
+        for key, value in sequence
+    ]
+    sequence = [
+        (key, value.lower())
+        for key, value in sequence
+    ]
+    sequence = [
+        (key, value.strip())
+        for key, value in sequence
+    ]
+    return sequence
 
-
-#
 # Escriba una función llamada maper que recibe una lista de tuplas de la
 # función anterior y retorna una lista de tuplas (clave, valor). En este caso,
 # la clave es cada palabra y el valor es 1, puesto que se está realizando un
@@ -50,6 +70,19 @@ def line_preprocessing(sequence):
 #
 def mapper(sequence):
     """Mapper"""
+
+    """sequence = [
+        (key, value.split())
+        for key, value in sequence
+    ]
+    sequence = [
+        (word, 1)
+        for _, words in sequence
+        for word in words
+    ]
+"""
+
+    return [(word, 1) for _, words in sequence for word in words.split()] 
 
 
 #
@@ -66,6 +99,8 @@ def mapper(sequence):
 def shuffle_and_sort(sequence):
     """Shuffle and Sort"""
 
+    return sorted(sequence, key=lambda x: x[0])
+
 
 #
 # Escriba la función reducer, la cual recibe el resultado de shuffle_and_sort y
@@ -76,6 +111,15 @@ def shuffle_and_sort(sequence):
 def reducer(sequence):
     """Reducer"""
 
+    diccionario = {}
+    for key, value in sequence:
+        if key in diccionario:
+            diccionario[key] += value
+        else:
+            diccionario[key] = value
+    
+    return list(diccionario.items())
+
 
 #
 # Escriba la función create_ouptput_directory que recibe un nombre de
@@ -83,6 +127,11 @@ def reducer(sequence):
 #
 def create_ouptput_directory(output_directory):
     """Create Output Directory"""
+    if os.path.exists(output_directory):
+        for file in glob.glob(f"{output_directory}/*"):
+            os.remove(file)
+        os.rmdir(output_directory)
+    os.mkdir(output_directory)
 
 
 #
@@ -96,6 +145,9 @@ def create_ouptput_directory(output_directory):
 def save_output(output_directory, sequence):
     """Save Output"""
 
+    with open(f"{output_directory}/part-00000", "w",encoding = "utf-8") as f: 
+        for key, value in sequence:
+            f.write(f"{key}\t{value}\n")
 
 #
 # La siguiente función crea un archivo llamado _SUCCESS en el directorio
@@ -104,6 +156,9 @@ def save_output(output_directory, sequence):
 def create_marker(output_directory):
     """Create Marker"""
 
+    with open(f"{output_directory}/_SUCCESS", "w",encoding = "utf-8") as f:
+        f.write("")
+
 
 #
 # Escriba la función job, la cual orquesta las funciones anteriores.
@@ -111,9 +166,22 @@ def create_marker(output_directory):
 def run_job(input_directory, output_directory):
     """Job"""
 
+    files = load_input(input_directory)
+    files = line_preprocessing(files)
+    files = mapper(files)
+    files = shuffle_and_sort(files)
+    files = reducer(files)
+
+    create_ouptput_directory(output_directory)
+    save_output(output_directory, files)
+    create_marker(output_directory)
+
+    from pprint import pprint
+    pprint(files)
+
 
 if __name__ == "__main__":
     run_job(
-        "input",
-        "output",
+        "files/input",
+        "files/output",
     )
